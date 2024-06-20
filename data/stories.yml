@@ -1,0 +1,19 @@
+version: "3.1"
+
+stories:
+  - story: greet user
+    steps:
+      - intent: greet
+      - action: utter_greet
+      - action: utter_college_question
+
+  - story: goodbye user
+    steps:
+      - intent: goodbye
+      - action: utter_goodbye
+
+  - story: IITB user
+    steps:
+      - intent: IITB
+      - action: utter_wow
+      - action: utter_goodbye
