@@ -1,0 +1,15 @@
+# Build the Docker image
+docker build -t rectangle-area-app .
+
+# Tag the Docker image for Docker Hub
+docker tag rectangle-area-app leadedcosine/rectangle-area-app:latest
+
+# Log in to Docker Hub
+docker login
+
+# Push the Docker image to Docker Hub
+docker push leadedcosine/rectangle-area-app:latest
+
+docker build -t rectangle-area-app .
+docker run -p 8501:8501 -p 8000:8000 rectangle-area-app
+#site:- http://localhost:8501
