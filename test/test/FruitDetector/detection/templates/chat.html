@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <style>
+        #messages { 
+            border: 1px solid #ccc; 
+            padding: 10px; 
+            height: 400px; 
+            overflow-y: scroll; 
+        }
+        .message { 
+            margin-bottom: 10px; 
+        }
+        .user { 
+            color: blue; 
+        }
+        .bot { 
+            color: green; 
+        }
+    </style>
+</head>
+<body>
+    <h1>Chat</h1>
+    <div id="messages">
+        <div class="message bot">
+            Bot: {{ initial_response }}
+        </div>
+    </div>
+    <form id="chat-form">
+        <input type="text" id="message" placeholder="Type your message here..." required>
+        <button type="submit">Send</button>
+    </form>
+    <script>
+        document.getElementById('chat-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const messageInput = document.getElementById('message');
+            const userMessage = messageInput.value;
+            if (userMessage.trim() === '') return;
+
+            const messagesDiv = document.getElementById('messages');
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = 'message user';
+            userMessageDiv.textContent = 'You: ' + userMessage;
+            messagesDiv.appendChild(userMessageDiv);
+
+            fetch("{% url 'chat' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: new URLSearchParams({
+                    'message': userMessage
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    const botMessageDiv = document.createElement('div');
+                    botMessageDiv.className = 'message bot';
+                    botMessageDiv.textContent = 'Bot: ' + data.message;
+                    messagesDiv.appendChild(botMessageDiv);
+                    messageInput.value = '';
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to bottom
+                } else {
+                    console.error('No response message');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>
