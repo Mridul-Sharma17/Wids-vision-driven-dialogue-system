@@ -10,7 +10,7 @@ import google.generativeai as genai
 from ultralytics import YOLO
 # Load environment variables
 load_dotenv()
-
+conversation = None
 # Access your API key from an environment variable
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
@@ -34,6 +34,7 @@ def detect_fruits(image_path):
     for i in range(len(obb.cls)):
         confidence = obb.conf[i].item()
         class_id = int(obb.cls[i].item())
+        
         
         if confidence > 0.5 and class_id in results[0].names:
             detected_fruits.append(results[0].names[class_id])
@@ -73,6 +74,7 @@ def upload_image(request):
 
         # Initialize the conversation
         history = request.session.get('history', [])
+        global conversation
         conversation = Conversation(history=history)
 
         # Create a prompt based on detected fruits
@@ -86,7 +88,7 @@ def upload_image(request):
 
         # Store the initial response in session
         request.session['history'] = conversation.history
-
+        
         return render(request, 'chat.html', {'initial_response': response})
 
     return redirect(reverse('index'))
@@ -95,8 +97,8 @@ def chat(request):
     if request.method == "POST":
         user_input = request.POST.get('message')
         history = request.session.get('history', [])
-        conversation = Conversation(history=history)
-
+        global conversation
+        print("History before user input:", history)
         # Add user input to conversation history
         conversation.add_message("You", user_input)
 
@@ -107,8 +109,17 @@ def chat(request):
 
         # Store updated history in session
         request.session['history'] = conversation.history
-
-        return JsonResponse({'message': response})
+        while True:
+            
+            # Add user input to conversation history
+            conversation.add_message("You", user_input)
+            
+            # Generate and print response based on updated conversation history
+            response = conversation.get_response(user_input)
+            if response:
+                conversation.add_message("Bot", response)
+            print("History after user input and response:", request.session['history'])
+            return JsonResponse({'message': response})
 
     return render(request, 'chat.html')
 
@@ -121,15 +132,18 @@ class Conversation:
     def add_message(self, role, message):
         self.history.append({"role": role, "message": message})
         # Send the message in the format accepted by the API
-
         self.chat.send_message(message, stream = False)
+        print(f"Added message to history: {role}: {message}")  # Debug print
+        print("Updated history:", self.history)
 
     def get_conversation(self):
         return "\n".join([f"{role}: {text}" for role, text in self.history])
     
-    def get_response(self, question):  # Ensure user message is added to history
+    def get_response(self, question):
+        print("History before generating response:", self.history)  # Ensure user message is added to history
         response = self.chat.send_message(question, stream=True)
         reply = ""
         for chunk in response:
-            reply += chunk.text  # Ensure bot's reply is added to history
+            reply += chunk.text
+        print("History after generating response:", self.history)  # Ensure bot's reply is added to history
         return reply.strip()
